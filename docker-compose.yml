@@ -1,0 +1,11 @@
+services:
+  careweave:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      # Offline profile by default -- no API key required.
+      CW_LLM_PROVIDER: stub
+      # Set to "anthropic" and supply a key to enable model-written responses.
+      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    volumes:
+      - ./data:/app/data

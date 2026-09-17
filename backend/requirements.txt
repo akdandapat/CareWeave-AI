@@ -1,0 +1,15 @@
+# Pinned to the versions this project was built and evaluated against.
+pandas==3.0.2
+numpy==2.4.4
+pyarrow==22.0.0
+scikit-learn==1.8.0
+lightgbm==4.7.0
+pydantic==2.13.5
+langgraph==1.2.11
+fastapi==0.121.2
+uvicorn==0.41.1
+pytest==9.0.1
+
+# Optional: only needed when CW_LLM_PROVIDER=anthropic.
+# The offline profile is the default and needs none of this.
+# anthropic==0.40.0
