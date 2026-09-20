@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CareWeave AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+/* ---------------------------------------------------------------------------
+   Palette is functional, not decorative: the three signal colours are the risk
+   bands, and they mean the same thing everywhere they appear.
+   Serif is reserved for prose a member actually reads; sans carries system data.
+   The vertical thread is the product's central claim rendered as structure --
+   a journey is one connected line, not a pile of disconnected moments.
+--------------------------------------------------------------------------- */
+:root{
+  --ink:#16202B; --ink-2:#33424F; --ink-3:#61717E;
+  --paper:#FBFAF7; --surface:#FFFFFF; --rule:#E2DED6;
+  --thread:#9AA8B3;
+  --low:#4E7A5E; --med:#B5813C; --high:#A6413B;
+  --accent:#2E5A6B; --accent-soft:#E7EFF2;
+  --r:3px;
+  --sans:"IBM Plex Sans",system-ui,sans-serif;
+  --serif:"Source Serif 4",Georgia,serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;font-size:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:inherit}
+
+/* --- masthead ------------------------------------------------------------ */
+header{
+  border-bottom:1px solid var(--rule); background:var(--surface);
+  position:sticky; top:0; z-index:20;
+}
+.masthead{max-width:1180px;margin:0 auto;padding:14px 24px;display:flex;align-items:baseline;gap:20px;flex-wrap:wrap}
+.wordmark{font-family:var(--serif);font-size:23px;font-weight:600;letter-spacing:-.01em}
+.wordmark span{color:var(--thread)}
+.tagline{color:var(--ink-3);font-size:13px;flex:1;min-width:200px}
+.synthetic{
+  font-size:12px;color:var(--high);border:1px solid var(--high);
+  padding:2px 8px;border-radius:var(--r);white-space:nowrap;
+}
+nav{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;gap:2px}
+nav button{
+  background:none;border:none;border-bottom:2px solid transparent;
+  padding:9px 14px;color:var(--ink-3);margin-bottom:-1px;
+}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:500}
+nav button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+main{max-width:1180px;margin:0 auto;padding:26px 24px 80px}
+.grid{display:grid;gap:22px}
+@media(min-width:900px){.grid.split{grid-template-columns:minmax(0,1fr) 360px}}
+
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);padding:20px}
+.panel h2{font-family:var(--serif);font-size:19px;font-weight:600;margin:0 0 4px}
+.panel .sub{color:var(--ink-3);font-size:13px;margin:0 0 16px}
+h3{font-size:14px;font-weight:600;margin:22px 0 8px}
+h3:first-child{margin-top:0}
+
+/* --- controls ------------------------------------------------------------ */
+.field{display:block;margin-bottom:12px}
+.field > span{display:block;font-size:13px;color:var(--ink-2);margin-bottom:4px}
+select,input[type=text],textarea{
+  width:100%;padding:8px 10px;border:1px solid var(--rule);
+  border-radius:var(--r);background:var(--surface);color:var(--ink);
+}
+textarea{min-height:78px;resize:vertical;font-family:var(--serif);font-size:15px}
+select:focus,input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+.btn{
+  background:var(--accent);color:#fff;border:1px solid var(--accent);
+  padding:8px 16px;border-radius:var(--r);font-weight:500;
+}
+.btn:hover{background:#244856}
+.btn[disabled]{opacity:.5;cursor:progress}
+.btn.quiet{background:transparent;color:var(--accent)}
+.btn.quiet:hover{background:var(--accent-soft)}
+.btn.danger{background:transparent;color:var(--high);border-color:var(--high)}
+.btn.danger:hover{background:#F7EDEC}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* --- the thread ---------------------------------------------------------- */
+.thread{position:relative;padding-left:26px;margin:0}
+.thread::before{
+  content:"";position:absolute;left:6px;top:6px;bottom:6px;
+  width:1px;background:var(--thread);
+}
+.node{position:relative;padding:0 0 15px}
+.node::before{
+  content:"";position:absolute;left:-23px;top:6px;width:9px;height:9px;
+  border-radius:50%;background:var(--surface);border:1.5px solid var(--thread);
+}
+.node.done::before{background:var(--thread)}
+.node.branch::before{border-color:var(--accent);background:var(--accent)}
+.node.stop::before{border-color:var(--high);background:var(--high)}
+.node .name{font-weight:500;font-size:14px}
+.node .name em{font-style:normal;color:var(--ink-3);font-weight:400;font-size:12px;margin-left:7px}
+.node .detail{color:var(--ink-2);font-size:13px;margin-top:1px}
+
+/* --- risk ---------------------------------------------------------------- */
+.risk{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.risk .num{font-family:var(--serif);font-size:38px;font-weight:600;line-height:1}
+.risk .band{font-size:13px;font-weight:600;padding:2px 9px;border-radius:var(--r);color:#fff}
+.band-low{background:var(--low)} .band-medium{background:var(--med)} .band-high{background:var(--high)}
+.meter{height:5px;background:var(--rule);border-radius:3px;overflow:hidden;margin:8px 0 14px}
+.meter i{display:block;height:100%}
+.meter i.low{background:var(--low)} .meter i.medium{background:var(--med)} .meter i.high{background:var(--high)}
+
+.codes{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 0;padding:0;list-style:none}
+.codes li{
+  font-size:12px;border:1px solid var(--rule);color:var(--ink-2);
+  padding:2px 7px;border-radius:var(--r);background:var(--paper);
+}
+.codes li.warn{border-color:var(--med);color:#8A6122}
+.codes li.stop{border-color:var(--high);color:var(--high)}
+
+/* --- prose (member-facing) ----------------------------------------------- */
+.message{
+  font-family:var(--serif);font-size:16px;line-height:1.62;
+  border-left:2px solid var(--thread);padding:2px 0 2px 16px;margin:10px 0 0;
+  max-width:64ch;
+}
+.message.pharmacist{border-left-color:var(--high)}
+.sources{margin:14px 0 0;padding:0;list-style:none;font-size:13px;color:var(--ink-3)}
+.sources li{padding:3px 0;border-top:1px solid var(--rule)}
+.exchange{border-top:1px solid var(--rule);padding-top:16px;margin-top:16px}
+.asked{color:var(--ink-2);font-size:14px}
+.asked b{font-weight:500;color:var(--ink)}
+
+/* --- tables & stats ------------------------------------------------------ */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:500;color:var(--ink-3);padding:5px 8px 5px 0;border-bottom:1px solid var(--rule)}
+td{padding:6px 8px 6px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.num-cell{font-variant-numeric:tabular-nums}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px;margin:0 0 4px}
+.stat .v{font-family:var(--serif);font-size:26px;font-weight:600;line-height:1.1}
+.stat .k{font-size:12px;color:var(--ink-3)}
+
+.bars{margin:0;padding:0;list-style:none}
+.bars li{display:grid;grid-template-columns:1fr 46px;gap:10px;align-items:center;padding:4px 0;font-size:13px}
+.bars .track{background:var(--rule);height:16px;border-radius:2px;position:relative;overflow:hidden}
+.bars .track i{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.8}
+.bars .track span{position:relative;padding-left:7px;line-height:16px;font-size:12px;color:var(--ink)}
+
+.brief{
+  font-size:13px;line-height:1.55;white-space:pre-wrap;background:var(--paper);
+  border:1px solid var(--rule);border-radius:var(--r);padding:12px;margin:8px 0 0;
+  max-height:280px;overflow:auto;
+}
+.note{font-size:13px;color:var(--ink-2);background:var(--accent-soft);border-radius:var(--r);padding:10px 12px}
+.note.stop{background:#F7EDEC;color:#7C302B}
+.empty{color:var(--ink-3);font-size:14px;padding:18px 0}
+.muted{color:var(--ink-3);font-size:13px}
+.loading{color:var(--ink-3);font-size:14px}
+@media(prefers-reduced-motion:no-preference){
+  .fade{animation:fade .22s ease-out}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="masthead">
+    <div class="wordmark">Care<span>weave</span></div>
+    <div class="tagline">Journey intelligence for pharmacy benefits</div>
+    <div class="synthetic">Synthetic data · research prototype</div>
+  </div>
+  <nav role="tablist">
+    <button role="tab" aria-selected="true" data-view="member">Member</button>
+    <button role="tab" aria-selected="false" data-view="advocate">Advocate</button>
+    <button role="tab" aria-selected="false" data-view="ops">Operations</button>
+  </nav>
+</header>
+<main id="main"></main>
+
+<script>
+const API = "";
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pretty = s => String(s ?? "").replace(/_/g," ");
+
+async function api(path, opts) {
+  const r = await fetch(API + path, {
+    headers: {"Content-Type":"application/json"}, ...opts
+  });
+  if (!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || r.statusText);
+  return r.json();
+}
+
+const state = { view:"member", members:[], memberId:null, exchanges:[], assessment:null, queue:[] };
+
+/* ------------------------------------------------------------------ member */
+function renderMember() {
+  $("#main").innerHTML = `
+    <div class="grid split">
+      <div class="panel">
+        <h2>Ask about your prescription</h2>
+        <p class="sub">Answers are drawn from your record and your plan's documents. Nothing is invented, and clinical questions go to a pharmacist.</p>
+        <label class="field"><span>Who are you signed in as</span>
+          <select id="mSel">${state.members.map(m=>`<option value="${m.member_id}">${esc(m.name)} — ${esc(m.plan)}</option>`).join("")}</select>
+        </label>
+        <label class="field"><span>What would you like to know</span>
+          <textarea id="mMsg" placeholder="The pharmacy said my prescription needs approval and I'm nearly out. What's happening?"></textarea>
+        </label>
+        <div class="row">
+          <button class="btn" id="mSend">Ask</button>
+          <button class="btn quiet" data-fill="The pharmacy said my prescription needs approval and I only have a few days left.">Approval delay</button>
+          <button class="btn quiet" data-fill="My medication cost a lot more this month than last month. Why am I being charged more?">Cost jumped</button>
+          <button class="btn quiet" data-fill="I've been feeling dizzy since I started this. Should I stop taking it?">Side effect</button>
+        </div>
+        <div id="mOut"></div>
+      </div>
+      <div class="panel">
+        <h2>Your recent activity</h2>
+        <p class="sub">The same thread the assistant reads.</p>
+        <div id="mTimeline" class="loading">Loading…</div>
+      </div>
+    </div>`;
+
+  $("#mSel").value = state.memberId;
+  $("#mSel").onchange = e => { state.memberId = e.target.value; state.exchanges = []; renderMember(); };
+  $("#mSend").onclick = ask;
+  $("#mMsg").onkeydown = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) ask(); };
+  document.querySelectorAll("[data-fill]").forEach(b => b.onclick = () => {
+    $("#mMsg").value = b.dataset.fill; $("#mMsg").focus();
+  });
+  drawExchanges();
+  loadTimeline();
+}
+
+async function ask() {
+  const msg = $("#mMsg").value.trim();
+  if (!msg) { $("#mMsg").focus(); return; }
+  const btn = $("#mSend"); btn.disabled = true; btn.textContent = "Working…";
+  try {
+    const res = await api("/member/ask", {
+      method:"POST", body: JSON.stringify({member_id: state.memberId, message: msg})
+    });
+    state.exchanges.unshift({ q: msg, res });
+    $("#mMsg").value = "";
+  } catch (err) {
+    state.exchanges.unshift({ q: msg, error: err.message });
+  } finally {
+    btn.disabled = false; btn.textContent = "Ask"; drawExchanges();
+  }
+}
+
+function drawExchanges() {
+  const el = $("#mOut"); if (!el) return;
+  if (!state.exchanges.length) { el.innerHTML = ""; return; }
+  el.innerHTML = state.exchanges.map(x => {
+    if (x.error) return `<div class="exchange fade"><p class="asked"><b>You asked</b> ${esc(x.q)}</p>
+      <div class="note stop">That didn't go through: ${esc(x.error)}</div></div>`;
+    const r = x.res;
+    const handoff = r.status === "handed_to_a_person";
+    const noAction = r.status === "no_action";
+    const body = noAction
+      ? `<div class="note">Nothing on the record needs your attention right now.</div>`
+      : `<div class="message${handoff ? " pharmacist" : ""}">${esc(r.message)}</div>`;
+    const src = (r.sources || []).length
+      ? `<ul class="sources"><li class="muted">Based on ${r.sources.length} plan document${r.sources.length>1?"s":""}</li>
+         ${r.sources.map(s => `<li>${esc(s.title)}</li>`).join("")}</ul>` : "";
+    return `<div class="exchange fade">
+      <p class="asked"><b>You asked</b> ${esc(x.q)}</p>${body}${src}</div>`;
+  }).join("");
+}
+
+async function loadTimeline() {
+  const el = $("#mTimeline"); if (!el) return;
+  try {
+    const evs = await api(`/member/${state.memberId}/timeline?limit=14`);
+    if (!evs.length) { el.innerHTML = `<p class="empty">No activity on this record yet.</p>`; return; }
+    el.className = "";
+    el.innerHTML = `<ol class="thread">${evs.slice().reverse().map(e => `
+      <li class="node done">
+        <div class="name">${esc(pretty(e.type))}<em>${e.occurred_at.slice(0,10)}</em></div>
+        ${e.payload && Object.keys(e.payload).length
+          ? `<div class="detail">${esc(Object.entries(e.payload).slice(0,2)
+              .map(([k,v]) => `${pretty(k)}: ${v}`).join(" · "))}</div>` : ""}
+      </li>`).join("")}</ol>`;
+  } catch (err) { el.innerHTML = `<p class="empty">Could not load activity: ${esc(err.message)}</p>`; }
+}
+
+/* ---------------------------------------------------------------- advocate */
+function renderAdvocate() {
+  $("#main").innerHTML = `
+    <div class="grid split">
+      <div>
+        <div class="panel" style="margin-bottom:22px">
+          <h2>Case assessment</h2>
+          <p class="sub">Run the engine against a member's record and see every step it took.</p>
+          <div class="row">
+            <select id="aSel" style="max-width:320px">${state.members.map(m=>`<option value="${m.member_id}">${esc(m.name)}</option>`).join("")}</select>
+            <select id="aTrig" style="max-width:200px">
+              <option value="refill_due">Refill due</option>
+              <option value="pa_requested">Authorization requested</option>
+              <option value="pa_info_requested">Authorization blocked on info</option>
+              <option value="claim_rejected">Claim rejected</option>
+              <option value="cost_changed">Cost changed</option>
+              <option value="member_contacted_support">Member contacted support</option>
+            </select>
+            <button class="btn" id="aRun">Assess</button>
+          </div>
+          <div id="aOut"></div>
+        </div>
+        <div class="panel"><h2>Member 360</h2>
+          <p class="sub">Everything on the record, so nobody has to ask twice.</p>
+          <div id="a360" class="loading">Loading…</div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Waiting on you</h2>
+        <p class="sub">Cases the engine stopped rather than answer on its own.</p>
+        <div id="aQueue" class="loading">Loading…</div>
+      </div>
+    </div>`;
+  $("#aSel").value = state.memberId;
+  $("#aSel").onchange = e => { state.memberId = e.target.value; state.assessment = null; renderAdvocate(); };
+  $("#aRun").onclick = assess;
+  load360(); loadQueue();
+  if (state.assessment) drawAssessment();
+}
+
+async function assess() {
+  const btn = $("#aRun"); btn.disabled = true; btn.textContent = "Running…";
+  try {
+    state.assessment = await api("/advocate/assess", { method:"POST", body: JSON.stringify({
+      member_id: state.memberId, trigger: $("#aTrig").value, is_proactive: false })});
+    drawAssessment(); loadQueue();
+  } catch (err) { $("#aOut").innerHTML = `<div class="note stop">${esc(err.message)}</div>`; }
+  finally { btn.disabled = false; btn.textContent = "Assess"; }
+}
+
+const NODE_LABEL = {
+  ingest_event:"Case opened", assemble_context:"Record assembled",
+  extract_signals:"Member's words read", score_friction:"Friction risk scored",
+  retrieve_evidence:"Plan policy retrieved", build_context_frame:"Situation framed",
+  select_action:"Action chosen", governance_gate:"Governance checked",
+  human_review:"Held for a person", generate_response:"Message written",
+  verify_response:"Message verified", commit_ledger:"Decision recorded"
+};
+
+function drawAssessment() {
+  const a = state.assessment, el = $("#aOut"); if (!el) return;
+  const band = a.risk_band || "low";
+  const stop = ["escalate","hold"].includes(a.gate_verdict);
+  const reviewable = a.suspended || a.requires_human;
+
+  el.innerHTML = `
+    <div class="fade">
+      <h3>Friction risk</h3>
+      <div class="risk">
+        <div class="num num-cell">${a.risk_score != null ? (a.risk_score*100).toFixed(0)+"%" : "—"}</div>
+        <div class="band band-${band}">${band}</div>
+        <div class="muted">chance of a support contact or abandoned fill in 14 days</div>
+      </div>
+      <div class="meter"><i class="${band}" style="width:${Math.min(100,(a.risk_score||0)*100)}%"></i></div>
+      <ul class="codes">${(a.risk_reasons||[]).map(r=>`<li>${esc(pretty(r))}</li>`).join("") || '<li>no elevated signals</li>'}</ul>
+
+      <h3>Recommendation</h3>
+      <table><tbody>
+        <tr><th>Action</th><td>${esc(pretty(a.selected_action) || "none")}</td></tr>
+        <tr><th>Confidence</th><td class="num-cell">${a.action_confidence ?? "—"}</td></tr>
+        <tr><th>Governance</th><td>${esc(a.gate_verdict || "—")}${a.requires_human ? " · needs a person" : ""}</td></tr>
+      </tbody></table>
+      ${(a.gate_notes||[]).map(n=>`<div class="note ${stop?"stop":""}" style="margin-top:8px">${esc(n)}</div>`).join("")}
+
+      ${a.response_text ? `<h3>Message to the member</h3><div class="message">${esc(a.response_text)}</div>` : ""}
+
+      ${(a.evidence||[]).length ? `<h3>Policy basis</h3><table><tbody>${
+        a.evidence.slice(0,4).map(e=>`<tr><th style="width:62%">${esc(e.title)}</th>
+        <td class="num-cell">${e.score}</td></tr>`).join("")}</tbody></table>` : ""}
+
+      ${a.advocate_brief ? `<h3>Case brief</h3><div class="brief">${esc(a.advocate_brief)}</div>` : ""}
+
+      <h3>How it got there</h3>
+      <ol class="thread">${(a.trace||[]).map(t=>{
+        const cls = t.node === "human_review" ? "stop" : (t.node === "governance_gate" ? "branch" : "done");
+        return `<li class="node ${cls}"><div class="name">${esc(NODE_LABEL[t.node] || pretty(t.node))}
+          <em>${t.duration_ms.toFixed(0)} ms</em></div>
+          <div class="detail">${esc(t.summary)}</div></li>`;
+      }).join("")}</ol>
+
+      ${reviewable ? `<h3>Your decision</h3>
+        <label class="field"><span>Why</span><input type="text" id="aWhy" placeholder="Reason for the record"></label>
+        <div class="row">
+          <button class="btn" data-rev="accept">Accept</button>
+          <button class="btn quiet" data-rev="modify">Send to a pharmacist instead</button>
+          <button class="btn danger" data-rev="reject">Reject</button>
+        </div>` : ""}
+    </div>`;
+
+  document.querySelectorAll("[data-rev]").forEach(b => b.onclick = () => review(b.dataset.rev));
+}
+
+async function review(decision) {
+  const body = { decision, reviewer_id:"ADV-0001", rationale: ($("#aWhy")?.value || "").trim() || null };
+  if (decision === "modify") body.modified_action = "route_to_pharmacist";
+  try {
+    state.assessment = await api(`/advocate/case/${state.assessment.case_id}/review`,
+      { method:"POST", body: JSON.stringify(body) });
+    drawAssessment(); loadQueue();
+  } catch (err) { $("#aOut").insertAdjacentHTML("afterbegin", `<div class="note stop">${esc(err.message)}</div>`); }
+}
+
+async function load360() {
+  const el = $("#a360"); if (!el) return;
+  try {
+    const c = await api(`/advocate/${state.memberId}/context`);
+    el.className = "fade";
+    const pa = c.open_authorizations, cl = c.recent_claims, it = c.interactions;
+    el.innerHTML = `
+      <div class="stats">
+        <div class="stat"><div class="v num-cell">${c.summary_counters.contacts_30d}</div><div class="k">contacts, 30 days</div></div>
+        <div class="stat"><div class="v num-cell">${c.summary_counters.rejections_90d}</div><div class="k">rejections, 90 days</div></div>
+        <div class="stat"><div class="v num-cell">${pa.length}</div><div class="k">open authorizations</div></div>
+        <div class="stat"><div class="v num-cell">${c.prescriptions.length}</div><div class="k">prescriptions</div></div>
+      </div>
+      <h3>Open authorizations</h3>
+      ${pa.length ? `<table><thead><tr><th>Medication</th><th>Status</th><th>Days open</th><th>Waiting on</th></tr></thead>
+        <tbody>${pa.map(p=>`<tr><td>${esc(p.drug)}</td><td>${esc(pretty(p.status))}</td>
+        <td class="num-cell">${p.days_open ?? "—"}</td><td>${esc(p.missing_info || "—")}</td></tr>`).join("")}</tbody></table>`
+        : `<p class="empty">None open.</p>`}
+      <h3>Recent claims</h3>
+      ${cl.length ? `<table><thead><tr><th>Date</th><th>Medication</th><th>Result</th><th>Paid</th></tr></thead>
+        <tbody>${cl.slice(0,6).map(x=>`<tr><td class="num-cell">${x.submitted_on}</td><td>${esc(x.drug)}</td>
+        <td>${x.status === "rejected" ? esc(x.reject_code) : "paid"}</td>
+        <td class="num-cell">${x.member_cost != null ? "$"+x.member_cost.toFixed(2) : "—"}</td></tr>`).join("")}</tbody></table>`
+        : `<p class="empty">No claims on file.</p>`}
+      <h3>Previous contacts</h3>
+      ${it.length ? `<table><thead><tr><th>Date</th><th>Asked about</th><th>Outcome</th></tr></thead>
+        <tbody>${it.slice(0,5).map(x=>`<tr><td class="num-cell">${x.occurred_on.slice(0,10)}</td>
+        <td>${esc(pretty(x.intent))}</td><td>${x.resolved ? "resolved" : (x.escalated ? "escalated" : "still open")}</td></tr>`).join("")}</tbody></table>`
+        : `<p class="empty">This member has not contacted support.</p>`}`;
+  } catch (err) { el.innerHTML = `<p class="empty">${esc(err.message)}</p>`; }
+}
+
+async function loadQueue() {
+  const el = $("#aQueue"); if (!el) return;
+  try {
+    const q = await api("/advocate/queue?limit=8");
+    el.className = "";
+    if (!q.length) { el.innerHTML = `<p class="empty">Nothing waiting. Cases appear here when the engine declines to answer on its own.</p>`; return; }
+    el.innerHTML = q.map(c => `<div style="border-bottom:1px solid var(--rule);padding:10px 0">
+      <div class="row" style="justify-content:space-between">
+        <strong style="font-weight:500">${esc(c.member_name || c.member_id)}</strong>
+        <span class="band band-${c.risk_band||'low'}">${esc(c.risk_band||'—')}</span>
+      </div>
+      <div class="muted">${esc(pretty(c.recommended_action))} · held because ${esc((c.gate_reasons||[]).map(pretty).join(", ") || "review required")}</div>
+    </div>`).join("");
+  } catch (err) { el.innerHTML = `<p class="empty">${esc(err.message)}</p>`; }
+}
+
+/* --------------------------------------------------------------------- ops */
+function renderOps() {
+  $("#main").innerHTML = `
+    <div class="panel" style="margin-bottom:22px">
+      <h2>Governance</h2>
+      <p class="sub">Every decision the engine has made, including the ones where it chose to stay quiet.</p>
+      <div id="oSummary" class="loading">Loading…</div>
+    </div>
+    <div class="grid split">
+      <div class="panel"><h2>What keeps causing friction</h2>
+        <p class="sub">Aggregated across members — the recurring problem, not the individual case.</p>
+        <div id="oCauses" class="loading">Loading…</div></div>
+      <div class="panel"><h2>Measured performance</h2>
+        <p class="sub">Generated by the evaluation suite, not typed in by hand.</p>
+        <div id="oEval" class="loading">Loading…</div></div>
+    </div>`;
+  loadOps();
+}
+
+async function loadOps() {
+  try {
+    const s = await api("/ops/summary");
+    const el = $("#oSummary"); el.className = "fade";
+    if (!s.n_decisions) { el.innerHTML = `<p class="empty">No decisions recorded yet. Run an assessment on the Advocate tab, or run the scenario suite.</p>`; return; }
+    const v = s.by_verdict || {};
+    el.innerHTML = `<div class="stats">
+        <div class="stat"><div class="v num-cell">${s.n_decisions}</div><div class="k">decisions</div></div>
+        <div class="stat"><div class="v num-cell">${(s.automation_rate*100).toFixed(0)}%</div><div class="k">handled automatically</div></div>
+        <div class="stat"><div class="v num-cell">${(s.human_review_rate*100).toFixed(0)}%</div><div class="k">sent to a person</div></div>
+        <div class="stat"><div class="v num-cell">${v.suppress||0}</div><div class="k">deliberately silent</div></div>
+      </div>
+      <h3>Actions taken</h3>${barList(s.by_action || {})}`;
+  } catch (err) { $("#oSummary").innerHTML = `<p class="empty">${esc(err.message)}</p>`; }
+
+  try {
+    const c = await api("/ops/root-causes");
+    const el = $("#oCauses"); el.className = "fade";
+    el.innerHTML = c.length
+      ? barList(Object.fromEntries(c.map(x => [x.reason, x.n])))
+      : `<p class="empty">No decisions recorded yet.</p>`;
+  } catch (err) { $("#oCauses").innerHTML = `<p class="empty">${esc(err.message)}</p>`; }
+
+  const el = $("#oEval"); el.className = "fade"; el.innerHTML = "";
+  try {
+    const ml = await api("/ops/reports/ml");
+    const cal = ml.calibration.calibrated_test, top = ml.operating_points[0];
+    el.innerHTML += `<h3>Friction risk model</h3><table><tbody>
+      <tr><th>Chosen model</th><td>${esc(ml.selected_model)}</td></tr>
+      <tr><th>PR-AUC on held-out test</th><td class="num-cell">${cal.pr_auc.toFixed(3)} against a ${cal.positive_rate.toFixed(3)} base rate</td></tr>
+      <tr><th>Lift over guessing</th><td class="num-cell">${cal.pr_auc_lift_over_base.toFixed(2)}×</td></tr>
+      <tr><th>Calibration error</th><td class="num-cell">${cal.ece.toFixed(3)}</td></tr>
+      <tr><th>Top ${(top.k_frac*100).toFixed(0)}% queue</th><td class="num-cell">${(top.precision*100).toFixed(0)}% precision, ${top.lift.toFixed(1)}× lift</td></tr>
+      </tbody></table>`;
+  } catch { el.innerHTML += `<p class="muted">Model report not generated yet.</p>`; }
+  try {
+    const rag = await api("/ops/reports/rag"), s = rag.summary;
+    el.innerHTML += `<h3>Policy retrieval</h3><table><tbody>
+      <tr><th>Hand-labelled questions</th><td class="num-cell">${rag.n_questions}</td></tr>
+      <tr><th>Right document in top 3</th><td class="num-cell">${(s["doc_hit@3"]*100).toFixed(0)}%</td></tr>
+      <tr><th>Right section in top 3</th><td class="num-cell">${(s["section_hit@3"]*100).toFixed(0)}%</td></tr>
+      <tr><th>Mean reciprocal rank</th><td class="num-cell">${s.mrr.toFixed(3)}</td></tr>
+      </tbody></table>`;
+  } catch { el.innerHTML += `<p class="muted">Retrieval report not generated yet.</p>`; }
+  try {
+    const ex = await api("/ops/reports/extraction");
+    el.innerHTML += `<h3>Reading the member's words</h3><table><tbody>
+      <tr><th>Documents scored</th><td class="num-cell">${ex.n_documents.toLocaleString()}</td></tr>
+      <tr><th>Intent identified</th><td class="num-cell">${(ex.intent_accuracy*100).toFixed(1)}%</td></tr>
+      <tr><th>Clinical questions caught</th><td class="num-cell">${(ex.clinical_question.recall*100).toFixed(0)}% of ${ex.clinical_question.true_positives + ex.clinical_question.false_negatives}</td></tr>
+      </tbody></table>
+      <p class="muted" style="margin-top:8px">Intent accuracy is measured on generated text and is optimistic. Real member language is far more varied.</p>`;
+  } catch { el.innerHTML += `<p class="muted">Extraction report not generated yet.</p>`; }
+}
+
+function barList(obj) {
+  const entries = Object.entries(obj).sort((a,b) => b[1]-a[1]);
+  if (!entries.length) return `<p class="empty">Nothing recorded.</p>`;
+  const max = entries[0][1] || 1;
+  return `<ul class="bars">${entries.map(([k,v]) => `<li>
+    <div class="track"><i style="width:${(v/max*100).toFixed(1)}%"></i><span>${esc(pretty(k))}</span></div>
+    <div class="num-cell">${v}</div></li>`).join("")}</ul>`;
+}
+
+/* -------------------------------------------------------------------- boot */
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+  state.view = b.dataset.view; draw();
+});
+function draw() {
+  ({member:renderMember, advocate:renderAdvocate, ops:renderOps})[state.view]();
+}
+(async function boot() {
+  $("#main").innerHTML = `<p class="loading">Connecting…</p>`;
+  try {
+    state.members = await api("/members?limit=120");
+    state.memberId = state.members[0]?.member_id;
+    draw();
+  } catch (err) {
+    $("#main").innerHTML = `<div class="panel"><h2>The API isn't reachable</h2>
+      <p class="sub">Start it with <code>make api</code>, then reload this page.</p>
+      <div class="note stop">${esc(err.message)}</div></div>`;
+  }
+})();
+</script>
+</body>
+</html>
