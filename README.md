@@ -3,7 +3,7 @@
 
 # CareWeave AI
 
-**A journey-state intelligence and action layer for pharmacy benefits.**
+**A journey-state intelligence and action layer for pharmacy benefits..**
 
 CareWeave holds each member's cross-system pharmacy journey as a single
 time-ordered object, continuously scores it for impending friction, grounds every
