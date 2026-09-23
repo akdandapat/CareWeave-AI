@@ -1,7 +1,7 @@
 [![CI](https://github.com/akdandapat/Carewave-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/akdandapat/Carewave-AI/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-# CareWave AI
+# CareWeave AI
 
 **A journey-state intelligence and action layer for pharmacy benefits.**
 
