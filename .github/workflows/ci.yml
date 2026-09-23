@@ -1,0 +1,104 @@
+name: CI
+
+# The whole pipeline runs in under a minute, so CI rebuilds everything rather
+# than just running the tests. Every push regenerates the dataset, retrains the
+# model and re-runs the evaluations, which means the numbers quoted in the
+# README are verified on every commit instead of being trusted.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  pipeline:
+    name: Build, evaluate and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Generate synthetic dataset
+        run: make data
+
+      - name: Train and calibrate the friction risk model
+        run: make train
+
+      - name: Evaluate policy retrieval
+        run: make rag
+
+      - name: Evaluate signal extraction
+        run: make extract
+
+      - name: Run end-to-end scenarios
+        run: make scenarios
+
+      - name: Run invariant tests
+        run: make test
+
+      - name: Check the reported metrics still hold
+        # Guards against a silent regression in the headline numbers. The
+        # thresholds sit just below the measured values, so ordinary variance
+        # passes and a real drop fails.
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          from pathlib import Path
+
+          artifacts = Path("data/artifacts")
+          failures = []
+
+          ml = json.loads((artifacts / "ml_report.json").read_text())
+          cal = ml["calibration"]["calibrated_test"]
+          checks = [
+              ("model PR-AUC",            cal["pr_auc"],                   0.34),
+              ("model lift over base",    cal["pr_auc_lift_over_base"],    2.20),
+              ("top-5% queue precision",  ml["operating_points"][0]["precision"], 0.45),
+          ]
+          if cal["ece"] > 0.08:
+              failures.append(f"calibration error {cal['ece']:.3f} above 0.080")
+
+          rag = json.loads((artifacts / "rag_report.json").read_text())
+          checks += [
+              ("retrieval doc_hit@3", rag["summary"]["doc_hit@3"], 0.85),
+              ("retrieval MRR",       rag["summary"]["mrr"],       0.80),
+          ]
+
+          ex = json.loads((artifacts / "extraction_report.json").read_text())
+          # A missed clinical question routes a safety question to an automated
+          # answer, so this one is not allowed to regress at all.
+          checks.append(("clinical-question recall", ex["clinical_question"]["recall"], 1.0))
+
+          for name, value, floor in checks:
+              status = "ok " if value >= floor else "FAIL"
+              print(f"{status} {name}: {value:.3f} (floor {floor:.3f})")
+              if value < floor:
+                  failures.append(f"{name} {value:.3f} below floor {floor:.3f}")
+
+          if failures:
+              print("\nMetric regression:")
+              for f in failures:
+                  print(f"  - {f}")
+              sys.exit(1)
+          print("\nAll reported metrics hold.")
+          PY
+
+      - name: Upload evaluation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-reports
+          path: data/artifacts/*.json
+          retention-days: 14
