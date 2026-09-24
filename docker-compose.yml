@@ -1,11 +1,17 @@
 services:
   careweave:
     build: .
-    ports: ["8000:8000"]
+    # The image listens on 7860, the port Hugging Face Spaces requires. This
+    # has to match the Dockerfile, or `docker compose up` starts a container
+    # that nothing can reach.
+    ports: ["7860:7860"]
     environment:
       # Offline profile by default -- no API key required.
       CW_LLM_PROVIDER: stub
       # Set to "anthropic" and supply a key to enable model-written responses.
       # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-    volumes:
-      - ./data:/app/data
+
+# No data volume on purpose. The image generates its dataset, trains the model
+# and seeds the ledger at build time, so mounting the host's ./data over it
+# would hide all of that behind an empty directory and the demo would come up
+# blank. Use `make all` for local work on the real data instead.

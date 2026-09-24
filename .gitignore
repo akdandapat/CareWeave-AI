@@ -9,3 +9,4 @@ data/documents/*
 data/artifacts/*
 !data/**/.gitkeep
 .DS_Store
+all.txt

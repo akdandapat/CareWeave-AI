@@ -1,9 +1,20 @@
+---
+title: CareWeave AI
+emoji: 🏥
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+short_description: Journey intelligence for pharmacy benefits (synthetic data)
+---
+
 [![CI](https://github.com/akdandapat/Carewave-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/akdandapat/Carewave-AI/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 # CareWeave AI
 
-**A journey-state intelligence and action layer for pharmacy benefits..**
+**A journey-state intelligence and action layer for pharmacy benefits.**
 
 CareWeave holds each member's cross-system pharmacy journey as a single
 time-ordered object, continuously scores it for impending friction, grounds every
